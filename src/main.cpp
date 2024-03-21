@@ -6,8 +6,8 @@ const char* ssid = "ESP_Your_Name";  // Enter SSID here
 const char* password = "12345678";  //Enter Password here
 
 /* Put IP Address details */
-IPAddress local_ip(192,168,188,19);
-IPAddress gateway(192,168,188,1);
+IPAddress local_ip(192,168,0,1);
+IPAddress gateway(192,168,0,1);
 IPAddress subnet(255,255,255,0);
 
 WebServer server(80);
