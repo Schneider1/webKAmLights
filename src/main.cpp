@@ -222,6 +222,7 @@ void setup()
   WiFi.begin(ssid, password);
 
   WiFi.softAP(ssid, password);
+  delay(2000);
   WiFi.softAPConfig(local_ip, gateway, subnet);
   delay(100);
 
