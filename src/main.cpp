@@ -26,15 +26,47 @@ int led1vol = maxValue >> 1;
 uint8_t LED2pin = 27;
 int led2vol = maxValue >> 1;
 
-String buildSlider(int led, int value) {
+String buildSlider(int led, int value)
+{
   String ledId = "led" + String(led) + "slider";
-  return R"(<div><input type="range" id=")" + ledId + "\""
-   + R"( name=")" + ledId + "\""
-   + R"( min="0" max=")" + String(maxValue) + "\""
-   + R"( step=")" + String(stepSize) + "\"" 
-   + R"( value=")" + String(value) + "\""
-    + R"( oninput="ledSliderChange(this.value, )" + String(led) + ")\""
-   R"(/><label for=")" + ledId + "\">LED" + String(led) + R"(</label></div>)";
+  String formId = "form" + String(led);
+  return R"(<form id=")" + formId + R"(" action="/ledchanged" method="post" onchange="this.submit();">
+                    <input type="range" id=")" +
+         ledId + R"(" name="value" min="0" max=")" + String(maxValue) + R"(" step=")" + String(stepSize) + R"(" value=")" + String(value) + R"(" />
+                    <input type="hidden" name="led" value=")" +
+         String(led) + R"(" />
+            </form>)";
+}
+
+String buildStatusText(int value)
+{
+  return "<p class=\"led_status\">" + String(value) + "</p>";
+}
+
+String buildOffButton(int led, int value)
+{
+  return "<a class=\"button button-off\" href=\"/led" + String(led) + "off\">-</a>\n";
+}
+
+String buildOnButton(int led, int value)
+{
+  return "<a class=\"button button-on\" href=\"/led" + String(led) + "on\">+</a>\n";
+}
+
+String buildLedIdHeader(int led)
+{
+  return "<h3>LED " + String(led) + "</h3>";
+}
+
+void buildLedForm(String &ptr, int led, int value)
+{
+  ptr += R"(<div style='display: flex; flex-direction: column; align-items: center;'>)";
+  ptr += buildLedIdHeader(led);
+  ptr += buildOnButton(led, value);
+  ptr += buildStatusText(value);
+  ptr += buildSlider(led, value);
+  ptr += buildOffButton(led, value);
+  ptr += "</div>";
 }
 
 String SendHTML(int led1v, int led2v)
@@ -42,53 +74,35 @@ String SendHTML(int led1v, int led2v)
   String ptr = "<!DOCTYPE html> <html>\n";
   ptr += "<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=no\">\n";
   ptr += "<title>LED Control</title>\n";
-  ptr += "<style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}\n";
-  ptr += "body{margin-top: 50px;} h1 {color: #444444;margin: 50px auto 30px;} h3 {color: #444444;margin-bottom: 50px;}\n";
-  ptr += ".button {display: block;width: 80px;background-color: #3498db;border: none;color: white;padding: 13px 30px;text-decoration: none;font-size: 25px;margin: 0px auto 35px;cursor: pointer;border-radius: 4px;}\n";
+  ptr += "<style>html { font-family: Helvetica; display: inline-block; margin: 0px; text-align: center;}\n";
+  ptr += "body{margin: 0; height: 100vh; } h1 {color: #444444;} h3 {color: #444444;}\n";
+  ptr += ".button {display: block;width: 80px;background-color: #3498db;border: none;color: white;padding: 13px 30px;text-decoration: none;font-size: 25px;cursor: pointer;border-radius: 4px;}\n";
   ptr += ".button-on {background-color: #3498db;}\n";
   ptr += ".button-on:active {background-color: #2980b9;}\n";
   ptr += ".button-off {background-color: #34495e;}\n";
   ptr += ".button-off:active {background-color: #2c3e50;}\n";
-  ptr += "p {font-size: 14px;color: #888;margin-bottom: 10px;}\n";
+  ptr += ".led_status {font-weight: bold; font-size: 50px; margin: 40px 0px}\n";
+  ptr += "p {font-size: 14px;color: #888;}\n";
   ptr += "</style>\n";
   ptr += "</head>\n";
   ptr += "<body>\n";
+  ptr += "<div style='height:100%; position: relative;'>";
+  ptr += "<div style='position: absolute; top: 50; left: 0; right: 0;'>";
   ptr += "<h1>ESP32 Web Server</h1>\n";
   ptr += "<h3>Using Access Point(AP) Mode</h3>\n";
+  ptr += "</div>";
 
-  // ptr += "<div style='width:100%'><input type='range' min='0' max='"+String(maxValue)+"' value='"+String(led1v)+"'>";
+  ptr += "<div style='display: flex; align-items: center; justify-content: center; height: 100%'>";
+  buildLedForm(ptr, 1, led1v);
+  ptr += "<div style='width: 100px;'></div>";
+  buildLedForm(ptr, 2, led2v);
+  ptr += "</div>";
+  ptr += "</div>";
 
-  ptr += "<a class=\"button button-off\" href=\"/led1off\">-</a>\n";
-  ptr += "<p>LED1 Status:" + String(led1v) + "</p>";
-  ptr += buildSlider(1, led1v);
-  ptr += "<a class=\"button button-on\" href=\"/led1on\">+</a>\n";
-
-  ptr += "<a class=\"button button-off\" href=\"/led2off\">-</a>\n";
-  ptr += "<p>LED2 Status:" + String(led2v) + "</p>";
-  ptr += buildSlider(2, led2v);
-  ptr += "<a class=\"button button-on\" href=\"/led2on\">+</a>\n";
-
-  ptr += R"(<script>
-  function ledSliderChange(val, led) {
-    fetch(`/ledchanged?value=${val}&led=${led}`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.text();
-        })
-        .then(data => {
-            console.log(data);
-            document.body.innerHTML = data;
-        })
-        .catch(error => {
-            console.error('There has been a problem with your fetch operation:', error);
-        });
-}
-  </script>
-  )";
+  
   ptr += "</body>\n";
   ptr += "</html>\n";
+  
   return ptr;
 }
 
@@ -153,20 +167,42 @@ int fixValueInRange(int value)
   return value;
 }
 
+void interpolatedLedcWrite(int channel, int oldValue, int newValue, int steps)
+{
+  int stepSize = (newValue - oldValue) / steps;
+  // Starting delay value
+  float delayTime = 100; // You can adjust this initial delay to your preference
+  // Exponential decay factor
+  float decayFactor = 0.85; // Adjust this factor to control how quickly the delay shrinks (must be < 1)
+
+  for (int i = 0; i < steps; i++)
+  {
+    ledcWrite(channel, oldValue + i * stepSize);
+    delay((int)delayTime);
+
+    // Apply exponential decay to the delay time
+    delayTime *= decayFactor;
+  }
+  ledcWrite(channel, newValue);
+}
+
 void handleLedChanged()
 {
   int rawValue = server.arg("value").toInt();
-  int value = fixValueInRange(rawValue) ;
+  int value = fixValueInRange(rawValue);
   int led = server.arg("led").toInt();
   if (led == 1)
   {
+    interpolatedLedcWrite(ledChannel1, led1vol, value, abs(led1vol - value) / stepSize);
     led1vol = value;
   }
   else if (led == 2)
   {
+    interpolatedLedcWrite(ledChannel2, led2vol, value, abs(led2vol - value) / stepSize);
     led2vol = value;
   }
-  else {
+  else
+  {
     handle_NotFound();
     return;
   }
